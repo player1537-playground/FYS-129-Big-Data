@@ -12,10 +12,20 @@ clean-db:
 .PHONY: create-db
 create-db: clean-db
 	sqlite3 $(DATABASE) <$(SCHEMA)
-	python -c 'from $(FRIEND_ALGORITHM) import test_graph_1; test_graph_1()'
+
+.PHONY: load-db
+load-db: load-db/1
+
+.PHONY: load-db/%
+load-db/%: create-db
+	python -c 'from $(FRIEND_ALGORITHM) import test_graph_$*; test_graph_$*()'
 
 .PHONY: test-db
-test-db: create-db
+test-db: load-db
+	python -c 'from $(FRIEND_ALGORITHM) import main; main()'
+
+.PHONY: test-db/%
+test-db/%: load-db/%
 	python -c 'from $(FRIEND_ALGORITHM) import main; main()'
 
 

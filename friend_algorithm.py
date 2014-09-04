@@ -93,6 +93,19 @@ def test_graph_1():
 
     insert_friends(friends)
 
+def test_graph_2():
+    friends = { 1: { 5 },
+                2: { 6, 7 },
+                3: { 6, 7 },
+                4: { 6, 7 },
+                5: { 1, 6 },
+                6: { 2, 3, 4, 5, 7 },
+                7: { 2, 3, 4, 6, 8 },
+                8: { 7 },
+                }
+    
+    insert_friends(friends)
+
 def main():
     headings = ["Num determinable", "Total", "Percentage"]
     for desc, value in zip(headings,
