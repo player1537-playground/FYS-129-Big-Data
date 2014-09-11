@@ -1,3 +1,5 @@
+SHELL = /bin/bash
+
 DATABASE = friends.db
 SCHEMA = schema.sql
 FRIEND_ALGORITHM = friend_algorithm
@@ -21,12 +23,23 @@ load-db/%: create-db
 	python -c 'from $(FRIEND_ALGORITHM) import test_graph_$*; test_graph_$*()'
 
 .PHONY: test-db
-test-db: load-db
-	python -c 'from $(FRIEND_ALGORITHM) import main; main()'
+test-db: test-db/1
 
 .PHONY: test-db/%
 test-db/%: load-db/%
-	python -c 'from $(FRIEND_ALGORITHM) import main; main()'
+	diff --side-by-side --width=80 --suppress-common-lines \
+		<(echo "Received"; python -c 'from $(FRIEND_ALGORITHM) import show_accuracy_test; show_accuracy_test()') \
+		<(echo "Expected"; cat t/$@)
+
+.PHONY: visualize-db
+visualize-db: visualize-db/1
+
+.PHONY: visualize-db/%
+visualize-db/%: load-db/%
+	bash visualize.bash $(DATABASE)
+
+
+
 
 
 

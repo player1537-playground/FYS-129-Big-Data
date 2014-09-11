@@ -3,6 +3,7 @@
 from __future__ import division
 import pprint
 import sqlite3
+import csv
 
 sqlite_db = None
 
@@ -43,7 +44,7 @@ def insert_friends(edges):
     
     db.commit()
 
-def is_determinable(person_id):
+def is_determinable_many_friends(person_id):
     db = get_db()
     
     cur = db.execute(('SELECT generated.id '
@@ -62,9 +63,40 @@ def is_determinable(person_id):
                      { "person_id": person_id })
     
     ids = [v[0] for v in cur]
-    
-    #print ids
     return len(ids) == 1
+
+def is_determinable_one_friend(person_id):
+    db = get_db()
+    
+    cur = db.execute(('SELECT e1.first_id, e2.first_id, e3.first_id, e3.second_id '
+                      'FROM edges AS e1 '
+                      'JOIN edges AS e2 '
+                      '  ON e1.second_id = e2.first_id '
+                      'JOIN edges AS e3 '
+                      '  ON e2.second_id = e3.first_id '
+                      'WHERE e1.first_id = :person_id '
+                      'GROUP BY e3.second_id '),
+                     { "person_id": person_id })
+    
+    # sqlite3 friends.db 'SELECT e1.first_id, e2.first_id, e3.first_id, e3.second_id, COUNT(CASE WHEN e3.second_id = e2.first_id THEN 1 ELSE 0 END) FROM edges AS e1 JOIN edges AS e2   ON e1.second_id = e2.first_id JOIN edges AS e3   ON e2.second_id = e3.first_id WHERE e1.first_id = 1 GROUP BY e2.first_id, e3.first_id'
+    
+    vals = [v for v in cur]
+    
+    print vals
+    
+
+def is_determinable(person_id):
+    db = get_db()
+    
+    cur = db.execute(('SELECT COUNT(*) FROM edges WHERE first_id = :person_id'),
+                     { "person_id": person_id })
+    
+    num_friends = cur.fetchone()[0]
+    
+    if num_friends > 1:
+        return is_determinable_many_friends(person_id)
+    else:
+        return is_determinable_one_friend(person_id)
 
 def accuracy_of_graph():
     db = get_db()
@@ -72,14 +104,8 @@ def accuracy_of_graph():
     cur = db.execute(('SELECT id FROM vertices'))
     person_ids = [v[0] for v in cur]
     
-    num_determinable = 0
-    for person_id in person_ids:
-        if is_determinable(person_id):
-            num_determinable += 1
-    
-    return (num_determinable, 
-            len(person_ids), 
-            num_determinable / len(person_ids) * 100)
+    return [ (person_id, is_determinable(person_id))
+             for person_id in person_ids ]
 
 def test_graph_1():
     friends = { 1: { 2, 3, 4 },
@@ -105,6 +131,12 @@ def test_graph_2():
                 }
     
     insert_friends(friends)
+
+def show_accuracy_test():
+    results = accuracy_of_graph()
+    
+    for person_id, determinable in results:
+        print "%d = %s" % (person_id, str(determinable))
 
 def main():
     headings = ["Num determinable", "Total", "Percentage"]
