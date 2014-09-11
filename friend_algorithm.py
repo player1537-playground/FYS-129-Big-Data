@@ -46,20 +46,16 @@ def insert_friends(edges):
 
 def is_determinable_many_friends(person_id):
     db = get_db()
-    
-    cur = db.execute(('SELECT generated.id '
-                      'FROM (SELECT edges2.second_id id, '
-                      '             COUNT(*) c '
-                      '      FROM edges '
-                      '      JOIN edges AS edges2 '
-                      '        ON edges.second_id = edges2.first_id '
-                      '      WHERE edges.first_id = :person_id '
-                      '      GROUP BY edges2.second_id '
-                      '     ) AS generated '
-                      'WHERE generated.c = (SELECT COUNT(*) '
-                      '                     FROM edges '
-                      '                     WHERE first_id = :person_id '
-                      '                    ) '),
+
+    cur = db.execute(('SELECT e2.second_id '
+                      'FROM edges AS e1 '
+                      'JOIN edges AS e2 ' 
+                      '  ON e1.second_id = e2.first_id '
+                      'WHERE e1.first_id = :person_id '
+                      'GROUP BY e2.second_id '
+                      'HAVING COUNT(*) = (SELECT COUNT(*) '
+                      '                   FROM edges '
+                      '                   WHERE edges.first_id = e1.first_id) '),
                      { "person_id": person_id })
     
     ids = [v[0] for v in cur]
@@ -68,21 +64,20 @@ def is_determinable_many_friends(person_id):
 def is_determinable_one_friend(person_id):
     db = get_db()
     
-    cur = db.execute(('SELECT e1.first_id, e2.first_id, e3.first_id, e3.second_id '
-                      'FROM edges AS e1 '
-                      'JOIN edges AS e2 '
-                      '  ON e1.second_id = e2.first_id '
-                      'JOIN edges AS e3 '
-                      '  ON e2.second_id = e3.first_id '
-                      'WHERE e1.first_id = :person_id '
-                      'GROUP BY e3.second_id '),
+    cur = db.execute(('SELECT COUNT(*) = 1 '
+                      'FROM (SELECT SUM(e3.second_id != e2.first_id) c '
+                      '      FROM edges AS e1 '
+                      '      JOIN edges AS e2 '
+                      '        ON e1.second_id = e2.first_id '
+                      '      JOIN edges AS e3 '
+                      '        ON e2.second_id = e3.first_id '
+                      '      WHERE e1.first_id = :person_id '
+                      '      GROUP BY e2.first_id, e3.second_id '
+                      '     ) '
+                      'WHERE c = 0 '),
                      { "person_id": person_id })
     
-    # sqlite3 friends.db 'SELECT e1.first_id, e2.first_id, e3.first_id, e3.second_id, COUNT(CASE WHEN e3.second_id = e2.first_id THEN 1 ELSE 0 END) FROM edges AS e1 JOIN edges AS e2   ON e1.second_id = e2.first_id JOIN edges AS e3   ON e2.second_id = e3.first_id WHERE e1.first_id = 1 GROUP BY e2.first_id, e3.first_id'
-    
-    vals = [v for v in cur]
-    
-    print vals
+    return cur.fetchone()[0] == 1
     
 
 def is_determinable(person_id):

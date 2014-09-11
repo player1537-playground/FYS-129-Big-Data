@@ -28,8 +28,8 @@ test-db: test-db/1
 .PHONY: test-db/%
 test-db/%: load-db/%
 	diff --side-by-side --width=80 --suppress-common-lines \
-		<(echo "Received"; python -c 'from $(FRIEND_ALGORITHM) import show_accuracy_test; show_accuracy_test()') \
-		<(echo "Expected"; cat t/$@)
+		<(python -c 'from $(FRIEND_ALGORITHM) import show_accuracy_test; show_accuracy_test()') \
+		t/$@
 
 .PHONY: visualize-db
 visualize-db: visualize-db/1
