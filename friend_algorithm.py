@@ -127,6 +127,15 @@ def test_graph_2():
     
     insert_friends(friends)
 
+def test_graph_3():
+    friends = { 1: { 4 },
+                2: { 4 },
+                3: { 4 },
+                4: { 1, 2, 3 },
+                }
+    
+    insert_friends(friends)
+
 def show_accuracy_test():
     results = accuracy_of_graph()
     
